@@ -1,0 +1,150 @@
+---
+title: "TidyTuesday College Income"
+author: "Gustavo Reyes"
+date: "10/5/2021"
+output: html_document
+---
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(scales)
+theme_set(theme_light())
+```
+
+
+```{r}
+recent_grads<-read.csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2018/2018-10-16/recent-grads.csv")
+
+recent_grads<-tibble(recent_grads)
+
+Majors_Processed<-recent_grads %>% 
+  arrange(desc(Median)) %>% 
+  mutate(Major = str_to_title(Major),
+         Major = fct_reorder(Major, Median)) 
+
+```
+
+```{r}
+glimpse(recent_grads)
+```
+
+
+```{r}
+recent_grads %>% 
+  view()
+```
+### Most common categories
+```{r}
+Majors_Processed %>% 
+ count(Major_category,wt= Total, sort = TRUE) %>% 
+  mutate(Major_category = fct_reorder(Major_category,n)) %>% 
+  ggplot(aes(Major_category, n, fill=Major_category))+
+  geom_col()+
+  coord_flip()+
+  labs(x="",
+       y = "Number of total graduates")+
+  theme(legend.position = "none")
+```
+
+
+###MOst common Majors
+```{r}
+Majors_Processed %>% 
+  mutate(Major = fct_reorder(Major,Total)) %>% 
+  arrange(desc(Total)) %>% 
+  head(20) %>% 
+  ggplot(aes(Major, Total, fill = Major_category))+
+  geom_col()+
+  coord_flip()+
+  scale_y_continuous(labels = comma_format())+
+  labs(x="",
+       y = "Number of total graduates")
+```
+
+
+
+###Categories that make the most money
+```{r}
+Majors_Processed %>% 
+  mutate(Major_category = fct_reorder(Major_category, Median)) %>% 
+  ggplot(aes(Major_category,Median))+
+  geom_boxplot()+
+  scale_y_continuous(labels = dollar_format())+
+  coord_flip()
+```
+
+###Boxplot more money
+```{r}
+Majors_Processed %>% 
+  group_by(Major_category) %>% 
+  summarize(Median = median(Median)) %>% 
+  mutate(Major_category = fct_reorder(Major_category, Median)) %>% 
+  ggplot(aes(Major_category,Median))+
+  geom_col()+
+  scale_y_continuous(labels = dollar_format())+
+  coord_flip()
+
+```
+
+##Highest aerning majors
+```{r}
+
+Majors_Processed%>% 
+  filter(Sample_size>=100) %>% 
+  head(20) %>% 
+  ggplot(aes(Major,Median, color = Major_category))+
+  geom_point()+
+  geom_errorbar(aes(ymin = P25th, ymax = P75th))+
+  expand_limits(y=0)+
+  coord_flip()+
+  scale_y_continuous(labels = dollar_format())+
+  labs(title= "What are the higherst earning majors",
+       subtitle = "Top 20 with at least 100 graduates surveyed",
+       y = "Median Salary of Graduates",
+       x="")
+```
+
+
+###What are the lowest earning Majors? 
+```{r}
+Majors_Processed%>% 
+  filter(Sample_size>=100) %>% 
+  tail(20) %>% 
+  ggplot(aes(Major,Median, color = Major_category))+
+  geom_point()+
+  geom_errorbar(aes(ymin = P25th, ymax = P75th))+
+  expand_limits(y=0)+
+  coord_flip()+
+  scale_y_continuous(labels = dollar_format())
+
+```
+
+###drop low significance. 
+```{r}
+library(ggrepel)
+
+Majors_Processed %>% 
+  ggplot(aes(Sample_size, Median))+
+  geom_point()+
+  geom_text(aes(label = Major), check_overlap = TRUE, vjust= 1, hjust =1)+
+  scale_y_continuous(labels = dollar_format())+
+  scale_x_log10()
+```
+
+
+##Gender breakdown and typiical earnings
+
+```{r}
+Majors_Processed %>% 
+  arrange(desc(Total)) %>% 
+  head(20) %>% 
+  mutate(Major = fct_reorder(Major, Total)) %>% 
+  gather(Gender, Number, Men, Women) %>% 
+  select(Major, Gender,Number) %>% 
+  ggplot(aes(Major, Number, fill= Gender))+
+  geom_col()+
+  coord_flip()+
+  scale_y_continuous( labels = comma_format())+
+  labs(x ="", y = "Total Graduates")
+```
+
